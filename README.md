@@ -1,9 +1,13 @@
 # TASan - Standalone AddressSanitizer Library
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/your-username/tasan)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](https://github.com/your-username/tasan/blob/main/LICENSE)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/Luohaothu/tasan)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](https://github.com/Luohaothu/tasan/blob/main/LICENSE)
 [![C++](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://isocpp.org/)
 [![CMake](https://img.shields.io/badge/CMake-3.20%2B-blue.svg)](https://cmake.org/)
+
+## 🌐 Language Versions
+
+[English](README.md) | [中文](README_CN.md)
 
 **TASan** is a completely standalone AddressSanitizer (ASan) runtime library extracted from the LLVM project. It provides state-of-the-art memory error detection capabilities without any external LLVM dependencies, making it easy to integrate into any C/C++ project.
 
@@ -43,7 +47,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/tasan.git
+git clone https://github.com/Luohaothu/tasan.git
 cd tasan
 
 # Create build directory
@@ -61,11 +65,13 @@ make clang_rt.asan
 
 ### Using TASan in Your Project
 
-#### Method 1: Link with TASan Library
+#### Method 1: Using Compiler Flag (Recommended)
 
 ```bash
-# Compile your program with TASan
+# Compile with TASan runtime (recommended)
 g++ -fsanitize=address -o your_program your_source.cpp
+
+# This automatically links with TASan and enables instrumentation
 ```
 
 #### Method 2: Manual Linking
@@ -99,23 +105,27 @@ The project includes several example programs to demonstrate TASan capabilities:
 ### Basic Usage Example
 ```cpp
 #include <iostream>
+#include <cstdlib>
 
 int main() {
+    // Basic heap allocation
     int* array = new int[10];
     
     // Initialize array
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; ++i) {
         array[i] = i;
     }
     
-    // Use array safely
+    // Use the array
     std::cout << "Array values: ";
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; ++i) {
         std::cout << array[i] << " ";
     }
     std::cout << std::endl;
     
+    // Properly deallocate
     delete[] array;
+    
     std::cout << "Basic ASan example completed successfully!" << std::endl;
     return 0;
 }
@@ -124,23 +134,31 @@ int main() {
 ### Heap Overflow Detection
 ```cpp
 #include <iostream>
+#include <cstdlib>
 
 int main() {
+    // Allocate array of size 10
     int* array = new int[10];
     
-    // Initialize array
-    for (int i = 0; i < 10; i++) {
+    // Initialize array within bounds
+    for (int i = 0; i < 10; ++i) {
         array[i] = i;
     }
     
     std::cout << "Array initialized with values 0-9" << std::endl;
     
-    // This would trigger ASan error (commented for safe execution)
-    // array[10] = 42;  // Heap buffer overflow
-    // array[-1] = 24;  // Heap buffer underflow
+    // This would cause a heap overflow error - comment out for normal operation
+    // array[10] = 42;  // Buffer overflow here
     
+    // This would cause a heap underflow error - comment out for normal operation
+    // array[-1] = 42;  // Buffer underflow here
+    
+    // Proper cleanup
     delete[] array;
+    
     std::cout << "Heap overflow detection example completed!" << std::endl;
+    std::cout << "Uncomment the overflow/underflow lines to see ASan in action." << std::endl;
+    
     return 0;
 }
 ```
@@ -148,19 +166,24 @@ int main() {
 ### Use-After-Free Detection
 ```cpp
 #include <iostream>
+#include <cstdlib>
 
 int main() {
-    int* ptr = new int(42);
-    
+    // Allocate and initialize a variable
+    int* ptr = new int;
+    *ptr = 42;
     std::cout << "Value: " << *ptr << std::endl;
     
+    // Free the memory
     delete ptr;
     std::cout << "Memory freed" << std::endl;
     
-    // This would trigger ASan error (commented for safe execution)
-    // std::cout << "After free: " << *ptr << std::endl;  // Use-after-free
+    // This would cause a use-after-free error - comment out for normal operation
+    // std::cout << "Value after free: " << *ptr << std::endl;  // Use-after-free here
     
     std::cout << "Use-after-free detection example completed!" << std::endl;
+    std::cout << "Uncomment the use-after-free line to see ASan in action." << std::endl;
+    
     return 0;
 }
 ```
@@ -181,6 +204,9 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DTASAN_BUILD_EXAMPLES=ON
 
 # Custom install prefix
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local
+
+# Debug build with testing
+cmake .. -DCMAKE_BUILD_TYPE=Debug -DTASAN_BUILD_TESTS=ON -DTASAN_BUILD_EXAMPLES=ON
 ```
 
 ### Build Targets
@@ -195,8 +221,14 @@ make clang_rt.asan_static       # Static version
 make clang_rt.asan_cxx          # C++ components
 make clang_rt.asan-preinit      # Preinit components
 
+# Build component libraries
+make RTSanitizerCommon          # Shared sanitizer utilities
+make RTInterception             # Function interception module
+make RTSanitizerCommonSymbolizer # Symbolization utilities
+
 # Build examples
 make examples
+make basic_usage_example        # Specific example
 
 # Run tests (if enabled)
 make check-asan
@@ -211,6 +243,8 @@ make install
 tasan/
 ├── CMakeLists.txt              # Main project configuration
 ├── README.md                   # This file
+├── CLAUDE.md                   # Development guidelines
+├── .gitignore                  # Git ignore rules
 ├── cmake/                      # Localized LLVM CMake infrastructure
 │   ├── Modules/               # CMake modules
 │   └── caches/                # Build cache configurations
@@ -223,7 +257,11 @@ tasan/
 ├── include/sanitizer/         # Public headers
 ├── tests/                     # Test cases (453 from LLVM)
 ├── examples/                  # Example programs
-└── lib/                       # Built libraries (output)
+├── scripts/                   # Build and comparison scripts
+├── docs/                      # Documentation
+├── claude-dialog/             # Development conversation logs
+├── .claude/                   # Claude Code context
+└── llvm-project/              # LLVM source code (reference)
 ```
 
 ## 🧪 Testing
@@ -238,6 +276,13 @@ make check-asan
 cd build && lit tests/TestCases/heap_overflow.cpp
 cd build && lit tests/TestCases/Linux/
 cd build && lit tests/TestCases/Darwin/
+
+# Run platform-specific tests
+cd build && lit tests/TestCases/Android/
+cd build && lit tests/TestCases/Windows/
+
+# Run specific test file
+cd build && lit tests/TestCases/use_after_free.cpp
 ```
 
 ### Test Categories
@@ -320,8 +365,9 @@ AX_CHECK_LINK_FLAG([-fsanitize=address], [LDFLAGS="$LDFLAGS -fsanitize=address"]
 ### Getting Help
 
 - **Documentation**: Check the [CLAUDE.md](CLAUDE.md) file for development guidelines
-- **Issues**: Report bugs on [GitHub Issues](https://github.com/your-username/tasan/issues)
-- **Discussions**: Join our [GitHub Discussions](https://github.com/your-username/tasan/discussions)
+- **Issues**: Report bugs on [GitHub Issues](https://github.com/Luohaothu/tasan/issues)
+- **Discussions**: Join our [GitHub Discussions](https://github.com/Luohaothu/tasan/discussions)
+- **Examples**: See the `examples/` directory for practical usage examples
 
 ## 🤝 Contributing
 
@@ -337,7 +383,7 @@ We welcome contributions! Please see our contributing guidelines:
 
 ```bash
 # Clone with development dependencies
-git clone --recurse-submodules https://github.com/your-username/tasan.git
+git clone --recurse-submodules https://github.com/Luohaothu/tasan.git
 
 # Setup development environment
 cd tasan
@@ -388,4 +434,8 @@ export ASAN_OPTIONS=handle_segv=0
 
 **Built with ❤️ using modern CMake and LLVM technologies**
 
-For more information, visit our [GitHub Repository](https://github.com/your-username/tasan) or join our community discussions.
+For more information, visit our [GitHub Repository](https://github.com/Luohaothu/tasan) or join our community discussions.
+
+## 🌐 Language Versions
+
+[English](README.md) | [中文](README_CN.md)
